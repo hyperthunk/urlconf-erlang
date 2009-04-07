@@ -1,0 +1,32 @@
+{
+    trace_configuration, [
+        {trace_setup,[{trace_type, process}]},
+        {test_cases, [
+            {proper_init_should_compile_regexp, trace1}
+            %%{lookup_for_match_should_include_numbered_groups_if_submatches_present, trace1},
+            %%{lookup_should_include_named_groups_where_mapping_exists, trace1}
+            %%{capturing_groups_should_appear_in_match_record, trace_re}
+        ]},
+        {trace_targets,            %% MFA
+            [
+                {trace1, [
+                    {mod, 'urlconf.server'},
+                    {function, '_'},
+                    %%{arity, '_'}
+                    {match_spec, [{'_',[],[{exception_trace}]}]} %% ,{message,{process_dump}}
+                    %%{pflags, []}
+                ]},
+                {trace2, [
+                    {mod, 'mock_re_mod'},
+                    {function, 'compile'},
+                    {match_spec, [{'_',[],[{exception_trace}]}]} %% ,{message,{process_dump}}
+                ]},
+                {trace_re, [
+                    {mod, .re},
+                    {function, 'run'},
+                    {match_spec, [{'_',[],[{exception_trace}]}]} %% ,{message,{process_dump}}
+                ]}
+            ]
+        }
+    ]
+}.

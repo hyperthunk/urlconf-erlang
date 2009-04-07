@@ -1,0 +1,13 @@
+*.kpf
+*.pyc
+*.beam
+*.o
+*.so
+build/*
+^build$
+coverage
+coverage/*
+erl_crash.dump
+priv/
+test/logs/
+ebin/
