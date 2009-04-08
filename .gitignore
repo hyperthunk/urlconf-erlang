@@ -5,6 +5,7 @@
 *.so
 build/*
 ^build$
+Emakefile
 coverage
 coverage/*
 erl_crash.dump
