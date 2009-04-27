@@ -3,7 +3,10 @@
 # env
 ERL_PROG := $(shell which erl)
 ERL_TOP := $(shell ls -la $(ERL_PROG) | awk '{ gsub(/bin\/erl/, "", $$NF); print $$NF }')
-ERTS_VERSION := $(shell ls -la "$(ERL_TOP)" | grep erts- | awk '{ gsub(/erts-/, "", $$NF); print $$NF }')
+# TODO: use this instead:
+#  erl -noshell -eval 'io:format("~p", [erlang:system_info(system_version)])' -s erlang halt | awk ' /version (.*)/ { print $5 }'
+# ERTS_VERSION := $(shell ls -la "$(ERL_TOP)" | grep erts- | awk '{ gsub(/erts-/, "", $$NF); print $$NF }')
+ERTS_VERSION := $(shell erl -noshell -eval 'io:format("~p", [erlang:system_info(system_version)])' -s erlang halt | awk ' /version (.*)/ { print $$5 }')
 CWD := pwd
 
 ERL := $(ERL_PROG)
