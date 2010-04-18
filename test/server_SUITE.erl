@@ -10,49 +10,36 @@
 
 %% stdlib/kernel imports
 -import(ct).
--import(lib_test, [assert_equals/2, assert_throws/2]).
+%% -import(lib_test, [assert_equals/2, assert_throws/2]).
 -import(proplists, [get_value/2]).
 
 %% stdlib/kernel imports
 -include_lib("common_test/include/ct.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 %% contrib package/module imports
--import(lib_test.stubs).
--import(lib_test.suite_util).
--import(urlconf.server).
+%%-import(lib_test.stubs).
+%%-import(lib_test.suite_util).
+-import(urlconf_server).
 
 %% contrib includes
--include_lib("lib_test/include/test_support.hrl").
+-include("test.hrl").
 -include_lib("../include/regexp.hrl").
 
 %% public api exports
 
-all() -> lib_test.suite_util:register_module_exports(?MODULE).
-
-init_per_testcase(TestCase, Config) ->
-    NewConfig = lib_test.suite_util:load_trace_configuration(TestCase, Config),
-    io:format("~p~n", [NewConfig]),
-    NewConfig.
-
-end_per_testcase(_TestCase, Config) ->
-    lib_test.suite_util:unload_trace_configuration(Config).
-
-%% gen_server:init tests
-
-initialization_minus_config_should_explode() ->
-    ?TESTDOC("Lack of config data should cause an exception to be thrown").
+all() ->
+    %% lib_test.suite_util:register_module_exports(?MODULE).
+    ?EXPORT_TESTS(?MODULE).
 
 initialization_minus_config_should_explode(_Config) ->
-    lib_test:assert_equals(
+    ?assertEqual(
         {stop, {ebadinit, noconfig}},
-        server:init([])
+        urlconf_server:init([])
     ).
 
-proper_init_should_compile_regexp() ->
-    ?TESTDOC("Initialization function should compile all regex").
-
 proper_init_should_compile_regexp(_Config) ->
-    ListenerPid = lib_test.stubs:log_calls(),
+    ListenerPid = log_calls(),
     Mod = mock_regex:new(ListenerPid, []),
     Rx = "/home/user/(.*)",
     Mapping = {
@@ -60,7 +47,7 @@ proper_init_should_compile_regexp(_Config) ->
         foo.bar.baz,
         get_user
     },
-    server:init({Mod, [Mapping]}),
+    urlconf_server:init({Mod, [Mapping]}),
     Mod:verify_expectations([{compile, Rx}]),
     Mod:shutdown().
 
@@ -68,7 +55,7 @@ bad_regex_should_cause_init_to_error() ->
     ?TESTDOC("Bad regex grammer should cause gen_server#init to fail").
 
 bad_regex_should_cause_init_to_error(_Config) ->
-    ListenerPid = lib_test.stubs:log_calls(),
+    ListenerPid = log_calls(),
     Msg = "expected-error-message", ExpectedError = {error, Msg},
     Rx = "/bad/regex/*",
     Mod = mock_regex:new(ListenerPid, [{Rx, ExpectedError}]),
@@ -77,9 +64,9 @@ bad_regex_should_cause_init_to_error(_Config) ->
         package.module1,
         function1
     },
-    lib_test:assert_equals(
+    ?assertEqual(
         {stop, {ebadregex, Msg}},
-        server:init({Mod, [Mapping]})
+        urlconf_server:init({Mod, [Mapping]})
     ),
     Mod:shutdown().
 
@@ -92,9 +79,9 @@ cool_init_should_return_compiled_regex_as_server_state(_Config) ->
     Handler = package.mod2, Func = view_stuff,
     Mapping = {Regex, Handler, Func},
     ExpectedState = {Mod, [{Regex, {compiled_rx, Handler, Func}}]},
-    lib_test:assert_equals(
+    ?assertEqual(
         {ok, ExpectedState},
-        server:init({Mod, [Mapping]})
+        urlconf_server:init({Mod, [Mapping]})
     ),
     Mod:shutdown().
 
@@ -102,18 +89,18 @@ cool_init_should_return_compiled_regex_as_server_state(_Config) ->
 
 cast_is_unsupported(_Config) ->
     {reply, {enoapi, cast_unsupported}, _} =
-        server:handle_cast(msg, state).
+        urlconf_server:handle_cast(msg, state).
 
 info_is_ignored(_Config) ->
-    {noreply, state} = server:handle_info(info, state).
+    {noreply, state} = urlconf_server:handle_info(info, state).
 
 hup_should_call_init_for_new_state() ->
     ?TESTDOC("Sending a 'HUP' message should result in recompilation of all mappings").
 
 hup_should_call_init_for_new_state(_Config) ->
-    OrigMod = mock_regex:new(lib_test.stubs:log_calls(), []),
+    OrigMod = mock_regex:new(log_calls(), []),
     %% set up new mappings...
-    ListenerPid = lib_test.stubs:log_calls(),
+    ListenerPid = log_calls(),
     %% create a new mock
     NewMod = mock_regex:new(ListenerPid, []),
     %% kick 'em around a bit....
@@ -123,14 +110,14 @@ hup_should_call_init_for_new_state(_Config) ->
             original.handler,
             handle_request
         },
-        server:start({OrigMod, [OrigMapping]}),
+        urlconf_server:start({OrigMod, [OrigMapping]}),
         UpdatedRx = "new/regex",
         NewMapping = {
             UpdatedRx,
             new.handler,
             handle_request
         },
-        server:reconfigure(NewMod, [NewMapping]),
+        urlconf_server:reconfigure(NewMod, [NewMapping]),
         NewMod:verify_expectations([{compile, UpdatedRx}])
     after
         NewMod:shutdown(),
@@ -142,16 +129,16 @@ lookup_dispatcher_should_explode_unless_uri_present() ->
 
 lookup_dispatcher_should_explode_unless_uri_present(_Config) ->
     DummyRx = mock_regex:new(self(), []),
-    server:start({
+    urlconf_server:start({
         DummyRx,
         [{ "/notification/(.*)/(.*)/",  %% \1=>direction, \2=>interface
             some.handler.mod,
             handle_request
         }]
     }),
-    lib_test:assert_equals(
+    ?assertEqual(
         {error, {ebadarg, invalid_uri}},
-        server:lookup_dispatcher(invalid_uri)
+        urlconf_server:lookup_dispatcher(invalid_uri)
     ).
 
 lookup_for_match_should_include_numbered_groups_if_submatches_present() ->
@@ -165,16 +152,16 @@ lookup_for_match_should_include_numbered_groups_if_submatches_present(_Config) -
             groups = [ "outbound", "http" ]
         },
     DummyRE = mock_regex:new(self(), [{[Path, compiled_rx],RegexResp}]),
-    server:start({
+    urlconf_server:start({
         DummyRE,
         [{ "/notification/(.*)/(.*)/",
             my.handler,
             handle_request
         }]
     }),
-    lib_test:assert_equals(
+    ?assertEqual(
         {mfa, {my.handler, handle_request, ["outbound", "http"]}},
-        server:lookup_dispatcher(Path)
+        urlconf_server:lookup_dispatcher(Path)
     ).
 
 lookup_should_include_named_groups_where_mapping_exists() ->
@@ -188,16 +175,16 @@ lookup_should_include_named_groups_where_mapping_exists(_Config) ->
             groups = [ "outbound", "smpp" ]
         },
     RE = mock_regex:new(self(), [{["/" ++ Path, compiled_rx], RegexResp}]),
-    server:start({
+    urlconf_server:start({
         RE,
         [{ "/notification/(.*)/(.*)/",
             my.handler,
             {handle_request, [direction,interface]} %% named arguments (of sorts)
         }]
     }),
-    lib_test:assert_equals(
+    ?assertEqual(
         {mfa, {my.handler, handle_request, [{direction, "outbound"}, {interface, "smpp"}]}},
-        server:lookup_dispatcher(Path)
+        urlconf_server:lookup_dispatcher(Path)
     ).
 
 named_arguments_supported_by_regex_impl(_) ->
@@ -210,8 +197,8 @@ named_arguments_supported_by_regex_impl(_) ->
             [uname, subcomponent]
         }}]
     },
-    server:start(Config),
-    lib_test:assert_same(
+    urlconf_server:start(Config),
+    ?assertEqual(
         {mfa, {
             my.controllers.users,
             my_user_function,
@@ -220,5 +207,17 @@ named_arguments_supported_by_regex_impl(_) ->
                 {subcomponent, "billing-address"}
             ]
         }},
-        server:lookup_dispatcher(Path)
+        urlconf_server:lookup_dispatcher(Path)
     ).
+
+log_calls() ->
+    spawn(fun() -> state_loop([]) end).
+
+state_loop(State) ->
+    receive
+        {getState, PID} -> PID ! State
+        ;
+        {update, NewState} -> state_loop([NewState|State])
+        ;
+        shutdown -> exit(normal)
+    end.

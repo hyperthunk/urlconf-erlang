@@ -1,4 +1,4 @@
-{import, "coverage/urlconf.coverdata"}.
-{export, "coverage/urlconf.coverdata"}.
+{import, "coverage/urlconf-erlang.coverdata"}.
+{export, "coverage/urlconf-erlang.coverdata"}.
 {level, details}.
-{incl_mods, ['urlconf.server', 'urlconf.regex']}.
+{incl_mods, ['urlconf_server', 'urlconf_regex']}.

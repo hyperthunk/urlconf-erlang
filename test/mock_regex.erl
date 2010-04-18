@@ -4,7 +4,6 @@
 -module(mock_regex, [CapturePid, Stubs]).
 -author('Tim Watson <watson.timothy@gmail.com>').
 
--behavior(urlconf.gen_regexp).
 -export([compile/1, match/2, matches/2]).
 
 -import(io).

@@ -6,23 +6,16 @@
 -record('urlconf.regexp', {
 
     %% textual representation of the rx
-    text_string,
+    text_string :: string(),
 
     %% compiled representation - NFA/DFA (implementation specific - optional)
-    compiled,
+    compiled    :: term(),
 
-    %% #'urlconf.regexp'.flags
-    %% Flags = [Flag]
-    %% Flag = {Name, Value}
-    %%
     %% flags for use at runtime and/or compile time (implementation specific - optional)
-    flags,
+    flags       :: [{atom(), term()}],
 
-
-    %% #'urlconf.regexp'.api_mod::atom()
-    %%
     %% the module used to build this regexp
-    api_mod
+    api_mod     :: atom()
 
    }).
 
@@ -42,4 +35,3 @@
 %%-record(urlconf.regex_ops, {
 
 %%    }).
-

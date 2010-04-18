@@ -1,23 +1,12 @@
 %% @author Tim Watson <watson.timothy@gmail.com>
 %% @copyright 2008 Tim Watson.
 
-%% public api exports
-
-%% module annotations
-
--module(urlconf.regex).
+-module(urlconf_regex).
 -author('Tim Watson <watson.timothy@gmail.com>').
 
 %% application imports/includes
 
 -include("regexp.hrl").
-
-%% stdlib/kernel imports/includes
-
-%% hack to keep cover tool happy...
--import(ets).
-
-%% contrib imports/includes
 
 %% public api exports
 

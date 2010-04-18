@@ -3,7 +3,7 @@
 
 %% @doc Request Mapping Server - maps uri to dispatcher based on configuration data
 
--module(urlconf.server).
+-module(urlconf_server).
 -vsn("0.4").
 -author('Tim Watson <watson.timothy@gmail.com>').
 
@@ -16,9 +16,6 @@
 -import(logger).
 -import(proc_lib).
 -import(gen_server).
-
-%% hack to keep 'cover' tool happy....
--import(ets).
 
 %% gen_server exports
 
@@ -112,7 +109,7 @@ handle_info(_Info, State) ->
 %% termination handler(s)
 
 terminate(Reason, _State) ->
-    ct:pal("Terminating: ~p~n", [Reason]).
+    ok. %% ct:pal("Terminating: ~p~n", [Reason]).
 
 code_change(_,_,_) -> throw({enoimpl, not_implemented}).
 
