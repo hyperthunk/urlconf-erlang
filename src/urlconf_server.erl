@@ -23,7 +23,7 @@
 
 %% public api exports
 
--export([start/1, start_link/1, reconfigure/2, lookup_dispatcher/1]).
+-export([start/1, start_link/1, stop/0, reconfigure/2, lookup_dispatcher/1]).
 
 %% public api
 
@@ -32,6 +32,9 @@ start(Config) ->
 
 start_link(Config) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Config, []).
+
+stop() ->
+    gen_server:call(?MODULE, stop).
 
 %%gen_loop(Config) ->
 %%    register(?MODULE, self()),

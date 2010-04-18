@@ -32,6 +32,10 @@ all() ->
     %% lib_test.suite_util:register_module_exports(?MODULE).
     ?EXPORT_TESTS(?MODULE).
 
+end_per_testcase(TestCase, Config) ->
+    catch (urlconf_server:stop()),
+    ok.
+
 initialization_minus_config_should_explode(_Config) ->
     ?assertEqual(
         {stop, {ebadinit, noconfig}},
@@ -70,10 +74,10 @@ bad_regex_should_cause_init_to_error(_Config) ->
     ),
     Mod:shutdown().
 
-cool_init_should_return_compiled_regex_as_server_state() ->
+good_init_should_return_compiled_regex_as_server_state() ->
     ?TESTDOC("The server should stash the compiled regex as gen_server process state").
 
-cool_init_should_return_compiled_regex_as_server_state(_Config) ->
+good_init_should_return_compiled_regex_as_server_state(_Config) ->
     Mod = mock_regex:new(self(), []),
     Regex = "/notification/(inbound|outbound)/(.*)",
     Handler = package.mod2, Func = view_stuff,
@@ -128,7 +132,7 @@ lookup_dispatcher_should_explode_unless_uri_present() ->
     ?TESTDOC("Trying to lookup a dispatcher without a decent uri will fail").
 
 lookup_dispatcher_should_explode_unless_uri_present(_Config) ->
-    DummyRx = mock_regex:new(self(), []),
+    DummyRx = mock_regex:new(log_calls(), []),
     urlconf_server:start({
         DummyRx,
         [{ "/notification/(.*)/(.*)/",  %% \1=>direction, \2=>interface
@@ -151,7 +155,7 @@ lookup_for_match_should_include_numbered_groups_if_submatches_present(_Config) -
             match = Path,
             groups = [ "outbound", "http" ]
         },
-    DummyRE = mock_regex:new(self(), [{[Path, compiled_rx],RegexResp}]),
+    DummyRE = mock_regex:new(log_calls(), [{[Path, compiled_rx],RegexResp}]),
     urlconf_server:start({
         DummyRE,
         [{ "/notification/(.*)/(.*)/",
@@ -174,7 +178,7 @@ lookup_should_include_named_groups_where_mapping_exists(_Config) ->
             match = Path,
             groups = [ "outbound", "smpp" ]
         },
-    RE = mock_regex:new(self(), [{["/" ++ Path, compiled_rx], RegexResp}]),
+    RE = mock_regex:new(log_calls(), [{["/" ++ Path, compiled_rx], RegexResp}]),
     urlconf_server:start({
         RE,
         [{ "/notification/(.*)/(.*)/",
@@ -182,22 +186,22 @@ lookup_should_include_named_groups_where_mapping_exists(_Config) ->
             {handle_request, [direction,interface]} %% named arguments (of sorts)
         }]
     }),
+    Result = urlconf_server:lookup_dispatcher(Path),
+    urlconf_server:stop(),
     ?assertEqual(
         {mfa, {my.handler, handle_request, [{direction, "outbound"}, {interface, "smpp"}]}},
-        urlconf_server:lookup_dispatcher(Path)
+        Result
     ).
 
 named_arguments_supported_by_regex_impl(_) ->
     Path = "/users/fwnext-retail/billing-address",
     Rx = "/users/(?<uname>.*)/(?<subcomponent>.*)$",
-    Config = {
-        urlconf.regex,
-        [{Rx, my.controllers.users, {
-            my_user_function,
-            [uname, subcomponent]
-        }}]
-    },
+    Config = {urlconf_regex, [
+        {Rx, my.controllers.users, {my_user_function, [uname, subcomponent]}}
+    ]},
     urlconf_server:start(Config),
+    Result = urlconf_server:lookup_dispatcher(Path),
+    urlconf_server:stop(),
     ?assertEqual(
         {mfa, {
             my.controllers.users,
@@ -206,9 +210,7 @@ named_arguments_supported_by_regex_impl(_) ->
                 {uname, "fwnext-retail"},
                 {subcomponent, "billing-address"}
             ]
-        }},
-        urlconf_server:lookup_dispatcher(Path)
-    ).
+        }}, Result).
 
 log_calls() ->
     spawn(fun() -> state_loop([]) end).
